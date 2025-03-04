@@ -22,6 +22,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Login to Docker Hub
+<<<<<<< HEAD
+=======
+      if: github.ref == 'refs/heads/master'
+>>>>>>> frontend-repo/main
       uses: docker/login-action@v3
       with:
         username: devedse
@@ -41,6 +45,14 @@ jobs:
       run: echo ${{ steps.buildx.outputs.name }}
     - name: Available platforms
       run: echo ${{ steps.buildx.outputs.platforms }}
+<<<<<<< HEAD
+=======
+    - name: Run Buildx
+      run: |
+        export VERSION=1.0.${{needs.generate_version_number.outputs.build_number}}
+        echo Version: $VERSION
+        docker buildx build -f DeveLanCacheUI_Frontend/Dockerfile --build-arg BUILD_VERSION=$VERSION --platform linux/arm64,linux/amd64 -t devedse/develancacheui_frontend:${{needs.generate_version_number.outputs.build_number}} -t devedse/develancacheui_frontend:latest ${{ github.ref == 'refs/heads/master' && '--push' || '' }} .
+>>>>>>> frontend-repo/main
     - name: Set Image Tags
       id: tags
       run: |
@@ -55,6 +67,7 @@ jobs:
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
         if [[ "${{ github.ref }}" == 'refs/heads/master' ]]; then
+<<<<<<< HEAD
           echo "TAGS=-t devedse/develancacheui_backend:${VERSION} -t devedse/develancacheui_backend:latest -t devedse/develancacheui_backend:beta_nightly" >> $GITHUB_OUTPUT
         elif [[ "${{ github.actor }}" == 'dependabot[bot]' ]]; then
           echo "TAGS=-t devedse/develancacheui_backend:beta_${BRANCH_NAME}" >> $GITHUB_OUTPUT
@@ -65,6 +78,19 @@ jobs:
       run: |
         docker buildx build -f DeveLanCacheUI_Backend/Dockerfile --build-arg BUILD_VERSION=${{steps.tags.outputs.version}} --platform linux/arm64,linux/amd64 ${{steps.tags.outputs.tags}} ${{ (github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) && '--push' || '' }} .
 
+=======
+          echo "TAGS=-t devedse/develancacheui_frontend:${VERSION} -t devedse/develancacheui_frontend:latest -t devedse/develancacheui_frontend:beta_nightly" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.actor }}" == 'dependabot[bot]' ]]; then
+          echo "TAGS=-t devedse/develancacheui_frontend:beta_${BRANCH_NAME}" >> $GITHUB_OUTPUT
+        else 
+          echo "TAGS=-t devedse/develancacheui_frontend:beta_${BRANCH_NAME} -t devedse/develancacheui_frontend:beta_nightly" >> $GITHUB_OUTPUT
+        fi
+    - name: Run Buildx
+      run: |
+        docker buildx build -f DeveLanCacheUI_Frontend/Dockerfile --build-arg BUILD_VERSION=${{steps.tags.outputs.version}} --platform linux/arm64,linux/amd64 ${{steps.tags.outputs.tags}} ${{ (github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) && '--push' || '' }} .
+  
+  
+>>>>>>> frontend-repo/main
   build_linux:
     needs: generate_version_number
     runs-on: ubuntu-latest
@@ -75,11 +101,19 @@ jobs:
       with:
         dotnet-version: 9.0.x
     - name: dotnet restore
+<<<<<<< HEAD
       run: dotnet restore DeveLanCacheUI_Backend.sln
     - name: dotnet build
       run: dotnet build DeveLanCacheUI_Backend.sln -c Release --no-restore /p:Version=1.0.${{needs.generate_version_number.outputs.build_number}}
     - name: dotnet test
       run: dotnet test DeveLanCacheUI_Backend.sln -c Release --no-build --verbosity normal
+=======
+      run: dotnet restore DeveLanCacheUI_Frontend.sln
+    - name: dotnet build
+      run: dotnet build DeveLanCacheUI_Frontend.sln -c Release --no-restore /p:Version=1.0.${{needs.generate_version_number.outputs.build_number}}
+    - name: dotnet test
+      run: dotnet test DeveLanCacheUI_Frontend.sln -c Release --no-build --verbosity normal
+>>>>>>> frontend-repo/main
 
   build_windows:
     needs: generate_version_number
@@ -101,6 +135,7 @@ jobs:
         dotnet tool install --global dotnet-sonarscanner
         dotnet tool install --global dotnet-reportgenerator-globaltool
     - name: dotnet restore
+<<<<<<< HEAD
       run: dotnet restore DeveLanCacheUI_Backend.sln
     - name: SonarQube begin
       run: dotnet-sonarscanner begin /k:"DeveLanCacheUI_Backend" /o:"devedse-github" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.login=${{secrets.SONARQUBETOKEN}} /d:sonar.cs.opencover.reportsPaths=".\DeveLanCacheUI_Backend.Tests\TestResults\*\coverage.opencover.xml" /d:sonar.coverage.exclusions="DeveLanCacheUI_Backend.Tests/**/*.cs"
@@ -109,6 +144,16 @@ jobs:
     - name: dotnet test
       #run: dotnet test DeveLanCacheUI_Backend.sln --verbosity normal --no-build -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=\`"cobertura,opencover\`" /p:CoverletOutput=./TestResults/Coverage/
       run: dotnet test DeveLanCacheUI_Backend.sln --verbosity normal --no-build -c Release --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover
+=======
+      run: dotnet restore DeveLanCacheUI_Frontend.sln
+    - name: SonarQube begin
+      run: dotnet-sonarscanner begin /k:"DeveLanCacheUI_Frontend" /o:"devedse-github" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.login=${{secrets.SONARQUBETOKEN}} /d:sonar.cs.opencover.reportsPaths=".\DeveLanCacheUI_Frontend.Tests\TestResults\*\coverage.opencover.xml" /d:sonar.coverage.exclusions="DeveLanCacheUI_Frontend.Tests/**/*.cs"
+    - name: dotnet build
+      run: dotnet build DeveLanCacheUI_Frontend.sln -c Release --no-restore /p:Version=1.0.${{needs.generate_version_number.outputs.build_number}}
+    - name: dotnet test
+      #run: dotnet test DeveLanCacheUI_Frontend.sln --verbosity normal --no-build -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=\`"cobertura,opencover\`" /p:CoverletOutput=./TestResults/Coverage/
+      run: dotnet test DeveLanCacheUI_Frontend.sln --verbosity normal --no-build -c Release --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover
+>>>>>>> frontend-repo/main
     - name: SonarQube end
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -116,7 +161,11 @@ jobs:
     - name: Run CodeCov
       uses: codecov/codecov-action@v4
       with:
+<<<<<<< HEAD
         directory: ./DeveLanCacheUI_Backend.Tests/TestResults
+=======
+        directory: ./DeveLanCacheUI_Frontend.Tests/TestResults
+>>>>>>> frontend-repo/main
         fail_ci_if_error: true # optional (default = false)
         verbose: true # optional (default = false)
       env:
@@ -124,12 +173,21 @@ jobs:
 
     # - uses: actions/upload-artifact@v3
     #   with:
+<<<<<<< HEAD
     #     name: DeveLanCacheUI_Backend7z
     #     path: ./Scripts/Output/DeveLanCacheUI_Backend.7z
     # - uses: actions/upload-artifact@v3
     #   with:
     #     name: DeveLanCacheUI_BackendZip
     #     path: ./Scripts/Output/DeveLanCacheUI_Backend.zip
+=======
+    #     name: DeveLanCacheUI_Frontend7z
+    #     path: ./Scripts/Output/DeveLanCacheUI_Frontend.7z
+    # - uses: actions/upload-artifact@v3
+    #   with:
+    #     name: DeveLanCacheUI_FrontendZip
+    #     path: ./Scripts/Output/DeveLanCacheUI_Frontend.zip
+>>>>>>> frontend-repo/main
 
   # release_github:
   #   needs: [generate_version_number, build_windows, build_linux, build_docker]
@@ -162,10 +220,17 @@ jobs:
   #     with:
   #       tag_name: 1.0.${{needs.generate_version_number.outputs.build_number}}
   #       files: |
+<<<<<<< HEAD
   #         ./artifacts/DeveLanCacheUI_Backend7z/DeveLanCacheUI_Backend.7z
   #         ./artifacts/DeveLanCacheUI_BackendZip/DeveLanCacheUI_Backend.zip
   #         ./artifacts/DeveLanCacheUI_BackendNuGet/*.nupkg
   #         ./artifacts/DeveLanCacheUI_BackendNuGet/*.snupkg
+=======
+  #         ./artifacts/DeveLanCacheUI_Frontend7z/DeveLanCacheUI_Frontend.7z
+  #         ./artifacts/DeveLanCacheUI_FrontendZip/DeveLanCacheUI_Frontend.zip
+  #         ./artifacts/DeveLanCacheUI_FrontendNuGet/*.nupkg
+  #         ./artifacts/DeveLanCacheUI_FrontendNuGet/*.snupkg
+>>>>>>> frontend-repo/main
   #     env:
   #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -178,7 +243,14 @@ jobs:
   #   - name: Download all artifacts
   #     uses: actions/download-artifact@v2
   #     with:
+<<<<<<< HEAD
   #       name: DeveLanCacheUI_BackendNuGet
   #       path: ./artifacts/DeveLanCacheUI_BackendNuGet/
   #   - name: Push NuGet
   #     run: dotnet nuget push ./artifacts/DeveLanCacheUI_BackendNuGet/DeveLanCacheUI_Backend.1.0.${{needs.generate_version_number.outputs.build_number}}.nupkg -k ${{ secrets.NUGETTOKEN }} -s https://api.nuget.org/v3/index.json
+=======
+  #       name: DeveLanCacheUI_FrontendNuGet
+  #       path: ./artifacts/DeveLanCacheUI_FrontendNuGet/
+  #   - name: Push NuGet
+  #     run: dotnet nuget push ./artifacts/DeveLanCacheUI_FrontendNuGet/DeveLanCacheUI_Frontend.1.0.${{needs.generate_version_number.outputs.build_number}}.nupkg -k ${{ secrets.NUGETTOKEN }} -s https://api.nuget.org/v3/index.json
+>>>>>>> frontend-repo/main

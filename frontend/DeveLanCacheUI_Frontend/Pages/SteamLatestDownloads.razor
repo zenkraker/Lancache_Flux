@@ -1,0 +1,219 @@
+﻿@page "/steamlatestdownloads"
+@using DeveLanCacheUI_Frontend.ApiModels;
+@using DeveLanCacheUI_Frontend.Configuration;
+@using DeveLanCacheUI_Frontend.Services;
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HttpClient Http
+@inject BackendConnectionService _backendConnectionService
+@inject Blazored.LocalStorage.ISyncLocalStorageService _localStorage
+@inject NavigationManager Navigation
+
+<PageTitle>Steam Latest Downloads</PageTitle>
+
+<h1>
+    Steam Latest Downloads
+    <span class="status-ball @(hubConnection?.State == HubConnectionState.Connected ? "connected" : "disconnected")"
+          title="@(hubConnection?.State == HubConnectionState.Connected ? "Connected" : "Disconnected")">
+    </span>
+    @if (loading)
+    {
+        <span class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </span>
+    }
+</h1>
+
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>App</th>
+            <th>Depot</th>
+            <th>Client</th>
+            <th>Cache Hit</th>
+            <th>Cache Miss</th>
+            <th>Progress</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var downloadEvent in downloadEvents)
+        {
+            double cacheHitPercent = 0.0;
+            double cacheMissPercent = 0.0;
+            double totalPercent = 0.0;
+            if ((downloadEvent.CacheMissBytes + downloadEvent.CacheHitBytes) != 0)
+            {
+                cacheHitPercent = Math.Round(((double)downloadEvent.CacheHitBytes / (downloadEvent.CacheMissBytes + downloadEvent.CacheHitBytes)) * 100, 2);
+                cacheMissPercent = Math.Round(((double)downloadEvent.CacheMissBytes / (downloadEvent.CacheMissBytes + downloadEvent.CacheHitBytes)) * 100, 2);
+                if (downloadEvent.TotalBytes != 0)
+                {
+                    totalPercent = Math.Round(((double)(downloadEvent.CacheMissBytes + downloadEvent.CacheHitBytes) / (double)downloadEvent.TotalBytes) * 100, 2);
+                }
+            }
+            var appId = downloadEvent.SteamDepot?.SteamAppId ?? 0;
+            var downloadIdentifierString = downloadEvent.DownloadIdentifierString;
+            var appHref = appId != 0 ? $"https://steamdb.info/app/{appId}/" : "";
+            var depotHref = downloadIdentifierString != null && downloadEvent.CacheIdentifier == "steam" ? $"https://steamdb.info/depot/{downloadIdentifierString}/" : null;
+            var imgUrl = appId != 0 ? $"https://cdn.cloudflare.steamstatic.com/steam/apps/{appId}/header.jpg" : "";
+            <tr class="@(_localStorage.GetItem<bool>(LocalStorageField.CompactLayoutEnabled) ? "compact-layout" : "")">
+                <td>
+                    @downloadEvent.CreatedAt - @downloadEvent.LastUpdatedAt
+                </td>
+                <td>
+                    @if (appId != 0)
+                    {
+                        <a href="@appHref" target="_blank">
+                            <img src="@imgUrl" style="width:200px;height:auto;" />
+                            @*@(downloadEvent.SteamDepot?.SteamApp?.AppName ?? "unknown")*@
+                        </a>
+                    }
+                    else
+                    {
+                        <span>@(downloadEvent.SteamDepot?.SteamApp?.name ?? "unknown")</span>
+                    }
+                </td>
+                <td>
+                    @if (depotHref != null)
+                    {
+                        <a href="@depotHref" target="_blank">
+                            @downloadEvent.DownloadIdentifierString
+                        </a>
+                    }
+                    else
+                    {
+                        <span>@downloadEvent.DownloadIdentifierString</span>
+                    }
+                </td>
+                <td style="text-align:center;">
+                    @if (backendBaseUrl != null && _localStorage.GetItem<bool>(LocalStorageField.HashImagesEnabled))
+                    {
+                        <div>@downloadEvent.ClientIp</div>
+                        <div><img class="hashimage" src="@($"{backendBaseUrl}RoboHash/{downloadEvent.ClientIp}?format=png&sizeX={DeveLanCacheUIConstants.HashImageSize}&sizeY={DeveLanCacheUIConstants.HashImageSize}")" title="@downloadEvent.ClientIp" alt="Client Image" /></div>
+                    }
+                    else
+                    {
+                        @downloadEvent.ClientIp
+                    }
+                </td>
+                <td>
+                    <progress max="100" value="@cacheHitPercent"></progress>                                        
+                    @{
+                        //If I don't add this @{ } around it there's a random space
+                        @($"{DeveCoolLib.Conversion.ValuesToStringHelper.BytesToString(downloadEvent.CacheHitBytes)} ({cacheHitPercent}%)")
+                    }
+                </td>
+                <td>
+                    <progress max="100" value="@cacheMissPercent"></progress>
+                    @{
+                        //If I don't add this @{ } around it there's a random space
+                        @($"{DeveCoolLib.Conversion.ValuesToStringHelper.BytesToString(downloadEvent.CacheMissBytes)} ({cacheMissPercent}%)")
+                    }
+                </td>
+                <td>
+                    @if (downloadEvent.TotalBytes != 0)
+                    {
+                        <progress max="100" value="@totalPercent"></progress>
+
+                        var totalBytesString = DeveCoolLib.Conversion.ValuesToStringHelper.BytesToString((long)downloadEvent.TotalBytes);
+                        var downloadedBytesString = DeveCoolLib.Conversion.ValuesToStringHelper.BytesToString(downloadEvent.CacheMissBytes + downloadEvent.CacheHitBytes);
+                        var progressString = totalPercent < 100 ? $"{downloadedBytesString}/{totalBytesString} ({totalPercent}%)" : $"{downloadedBytesString} (100%)";
+
+                        @progressString
+                    }
+                    else
+                    {
+                        <span>Could not find Steam Manifest</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (loading)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border" style="width: 6rem; height: 6rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+<button class="btn btn-primary" @onclick="LoadMore">Load More</button>
+
+@code {
+    private List<DownloadEvent> downloadEvents = new List<DownloadEvent>();
+    private int loadedCount = 0;
+    private HubConnection hubConnection;
+
+    private bool loading = true;
+
+    public string? backendBaseUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _localStorage.Changed += (sender, eventArgs) => StateHasChanged();
+
+        await LoadMore();
+
+        backendBaseUrl = await _backendConnectionService.GetBackendBaseUrlAsync();
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri($"{backendBaseUrl}lancachehub"))
+            .Build();
+
+        hubConnection.On("UpdateDownloadEvents", async () =>
+        {
+            Console.WriteLine($"{DateTime.Now}: UpdateDownloadEvents");
+            //downloadEvents.Clear();
+            //loadedCount = 0;
+            //StateHasChanged();
+            await ReloadExisting();
+            //await InvokeAsync(async () => { await LoadMore(); });
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task ReloadExisting()
+    {
+        loading = true;
+        StateHasChanged();
+
+        var downloadEventsUrl = await _backendConnectionService.CreateBackendUrlAsync($"DownloadEvents/GetFilteredBySkipAndCount?filter=steam&skip=0&count={Math.Max(loadedCount, 40)}&filter=steam");
+        var newEvents = await Http.GetFromJsonAsync<DownloadEvent[]>(downloadEventsUrl);
+        downloadEvents = newEvents.ToList();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadMore()
+    {
+        loading = true;
+        StateHasChanged();
+        var downloadEventsUrl = await _backendConnectionService.CreateBackendUrlAsync($"DownloadEvents/GetFilteredBySkipAndCount?skip={loadedCount}&count=40&filter=steam");
+        var newEvents = await Http.GetFromJsonAsync<DownloadEvent[]>(downloadEventsUrl);
+        if (newEvents != null)
+        {
+            downloadEvents.AddRange(newEvents);
+            loadedCount += newEvents.Length;
+        }
+        loading = false;
+        StateHasChanged();
+    }
+
+    public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
+
+<style>
+
+</style>

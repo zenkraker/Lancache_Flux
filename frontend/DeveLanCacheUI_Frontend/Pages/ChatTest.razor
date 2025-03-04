@@ -1,0 +1,175 @@
+﻿@page "/chattest"
+@using DeveLanCacheUI_Frontend.Services;
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject BackendConnectionService _backendConnectionService
+@implements IAsyncDisposable
+
+<PageTitle>Chat Client</PageTitle>
+
+<div class="container pt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    Chat
+                </div>
+                <div class="card-body chat-box overflow-auto">
+                    <div id="messagesList">
+                        @foreach (var (user, message, timestamp) in messages)
+                        {
+                            var isMine = user == userInput;
+                            var offsetClass = isMine ? "justify-content-end" : "justify-content-start";
+                            var messageClass = isMine ? "msg_cotainer_send" : "msg_cotainer_receive";
+                            <div class="d-flex @offsetClass mb-4">
+                                <div class="@messageClass">
+                                    <div><b>@user</b></div>
+                                    <div>@message</div>
+                                    <span class="msg_time_send">@timestamp.ToString("t")</span>
+                                </div>
+                                <div class="img_cont_msg">
+                                    <img src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg" class="rounded-circle user_img_msg">
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="input-group">
+                        <input type="text" class="form-control" @bind="messageInput" @onkeyup="CheckForEnter" size="50" placeholder="Enter message" />
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button" @onclick="Send" disabled="@(!IsConnected)">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private HubConnection? hubConnection;
+    private List<(string, string, DateTime)> messages = new List<(string, string, DateTime)>();
+    private string? userInput;
+    private string? messageInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userInput = GenerateIdentifier();
+
+        var backendBaseUrl = await _backendConnectionService.GetBackendBaseUrlAsync();
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri($"{backendBaseUrl}chathub"))
+            .Build();
+
+        hubConnection.On<string, string>("ReceiveMessage", async (user, message) =>
+        {
+            messages.Add((user, message, DateTime.Now)); // Store timestamp along with message
+            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("scrollChatToBottom"); // Call JavaScript function
+        });
+
+        await hubConnection.StartAsync();
+        await hubConnection.SendAsync("SendMessage", userInput, "joined the chat");
+    }
+
+    private string GenerateIdentifier()
+    {
+        var adjectives = new[]
+        {
+            "Amusing", "Bouncy", "Cheerful", "Delightful", "Energetic", "Fancy", "Goofy", "Hilarious", "Inquisitive",
+            "Joyful", "Keen", "Lively", "Merry", "Nosy", "Optimistic", "Playful", "Quirky", "Radiant", "Silly",
+            "Thrilled", "Upbeat", "Vibrant", "Whimsical", "Xenial", "Youthful", "Zany", "Animated", "Blissful",
+            "Curious", "Dazzling"
+        };
+
+        var nouns = new[]
+        {
+            "Apricot", "Bagel", "Cantaloupe", "Donut", "Eclair", "Fudge", "Gingerbread", "Honeydew", "Icecream",
+            "Jellybean", "Kiwi", "Lollipop", "Muffin", "Nectarine", "Orange", "Pancake", "Quince", "Raspberry",
+            "Strawberry", "Tangerine", "UgliFruit", "Vanilla", "Waffle", "Xigua", "YellowWatermelon", "Zucchini",
+            "Apple", "Blueberry", "Cherry", "Dumpling"
+        };
+
+        var rand = new Random();
+        var adjective = adjectives[rand.Next(adjectives.Length)];
+        var noun = nouns[rand.Next(nouns.Length)];
+
+        return $"{adjective} {noun}";
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessage", userInput, messageInput);
+            messageInput = string.Empty;
+        }
+    }
+
+    private async Task CheckForEnter(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            await Send();
+        }
+    }
+
+    public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
+
+<style>
+    .chat-box {
+        background-color: #f5f5f5;
+        height: 80vh; /* Limit the height to 80% of the viewport height */
+        overflow-y: auto; /* Enable vertical scrolling */
+    }
+
+    .msg_cotainer_send {
+        border-radius: 20px; /* Decrease the border radius */
+        background-color: #78e08f;
+        color: white;
+        padding: 18px;
+        position: relative;
+        max-width: 70%;
+    }
+
+    .msg_cotainer_receive {
+        border-radius: 20px; /* Decrease the border radius */
+        background-color: #d0d0d0; /* Change this to a color that stands out against the gray background */
+        color: #222;
+        padding: 18px;
+        position: relative;
+        max-width: 70%;
+    }
+
+    .msg_time_send {
+        position: absolute;
+        bottom: 0;
+        right: 18px;
+        color: rgb(20,20,20);
+        font-size: 10px;
+    }
+
+    .img_cont_msg {
+        margin-top: auto;
+        margin-bottom: auto;
+        margin-left: 10px;
+    }
+
+    .user_img_msg {
+        height: 40px;
+        width: 40px;
+        border: 1.5px solid #78e08f;
+    }
+</style>

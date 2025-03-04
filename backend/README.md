@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 - [DeveLanCacheUI\_Backend](#develancacheui_backend)
   - [Screenshots](#screenshots)
   - [Homepage integration](#homepage-integration)
@@ -223,13 +222,6 @@ https://linux.die.net/man/8/mount.cifs
 | Auto refresh | 100% |
 | More data things | 80% (We have stats now) |
 | Dark Theme + Toggle | 100% (A bit jank, but it works) |
-=======
-# DeveLanCacheUI_Frontend
-A UI for Lan Cache. I'm tracking progress mostly in the Backend repository:
-https://github.com/devedse/DeveLanCacheUI_Backend/
-
-![ScreenshotFrontend](Screenshot_Frontend.png)
->>>>>>> frontend-repo/main
 
 ## Related projects
 
@@ -240,48 +232,26 @@ https://github.com/devedse/DeveLanCacheUI_Backend/
 | [DeveLanCacheUI_SteamDepotFinder](https://github.com/devedse/DeveLanCacheUI_SteamDepotFinder) | A tool to generate the mapping for steam depots and games. Kinda deprecated when `Feature_DirectSteamIntegration` is set to true |
 | [DeveLanCacheUI_SteamDepotFinder_Runner](https://github.com/devedse/DeveLanCacheUI_SteamDepotFinder_Runner) | Runs the SteamDepotFinder on a weekly basis. |
 
-<<<<<<< HEAD
-=======
-## How to run this
-See: https://github.com/devedse/DeveLanCacheUI_Backend/
-
->>>>>>> frontend-repo/main
 ## Build status
 
 | GitHubActions Builds |
 |:--------------------:|
-<<<<<<< HEAD
 | [![GitHubActions Builds](https://github.com/devedse/DeveLanCacheUI_Backend/workflows/GitHubActionsBuilds/badge.svg)](https://github.com/devedse/DeveLanCacheUI_Backend/actions/workflows/githubactionsbuilds.yml) |
-=======
-| [![GitHubActions Builds](https://github.com/devedse/DeveLanCacheUI_Frontend/workflows/GitHubActionsBuilds/badge.svg)](https://github.com/devedse/DeveLanCacheUI_Frontend/actions/workflows/githubactionsbuilds.yml) |
->>>>>>> frontend-repo/main
 
 ## DockerHub
 
 | Docker Hub |
 |:----------:|
-<<<<<<< HEAD
 | [![Docker pulls](https://img.shields.io/docker/v/devedse/develancacheui_backend)](https://hub.docker.com/r/devedse/develancacheui_backend/) |
-=======
-| [![Docker pulls](https://img.shields.io/docker/v/devedse/develancacheui_frontend)](https://hub.docker.com/r/devedse/develancacheui_frontend/) |
->>>>>>> frontend-repo/main
 
 ## Code Coverage Status
 
 | CodeCov |
 |:-------:|
-<<<<<<< HEAD
 | [![codecov](https://codecov.io/gh/devedse/DeveLanCacheUI_Backend/branch/master/graph/badge.svg)](https://codecov.io/gh/devedse/DeveLanCacheUI_Backend) |
-=======
-| [![codecov](https://codecov.io/gh/devedse/DeveLanCacheUI_Frontend/branch/master/graph/badge.svg)](https://codecov.io/gh/devedse/DeveLanCacheUI_Frontend) |
->>>>>>> frontend-repo/main
 
 ## Code Quality Status
 
 | SonarQube |
 |:---------:|
-<<<<<<< HEAD
 | [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=DeveLanCacheUI_Backend&metric=alert_status)](https://sonarcloud.io/dashboard?id=DeveLanCacheUI_Backend) |
-=======
-| [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=DeveLanCacheUI_Frontend&metric=alert_status)](https://sonarcloud.io/dashboard?id=DeveLanCacheUI_Frontend) |
->>>>>>> frontend-repo/main
